@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html>
+
+{% extends "base.html" %}
+{% block title%} Air Pollution Dashboard {% endblock %}
+{% block content %}
+<link rel="stylesheet" href="static/sensorStyle.css">
+<head>
+    <title>Air Pollution Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: Arial;
+            padding: 20px;
+        }
+
+        .chart-container {
+            width: 600px;
+            margin-bottom: 40px;
+        }
+    </style>
+</head>
+<body>
+<div class="device-form-wrapper">
+    <form id="connectDeviceForm" action="/add_device" method="POST" class="device-form">
+        <h2 class="form-title">Connect Device</h2>
+
+        <div class="form-group">
+            <label for="device_code">Device ID</label>
+            <input 
+                type="text" 
+                id="device_code" 
+                name="device_code" 
+                value="{{ request.form.device_code }}" 
+                placeholder="Enter device ID"
+                required
+            >
+        </div>
+
+        <button type="submit" class="btn-primary">
+            Connect to Device
+        </button>
+    </form>
+</div>
+
+
+{% if error %}
+    <p id="deviceMessage" style="color:red">{{ error }}</p>
+{% elif message %}
+    <p id="deviceMessage" style="color:green">{{ message }}</p>
+{% else %}
+    <p id="deviceMessage"></p>
+{% endif %}
+
+<label for="deviceSelect">View Device: </label>
+<select id="deviceSelect">
+    {% for device in devices %}
+        <option value="{{ device.device_id }}">{{ device.device_code }}</option>
+    {% endfor %}
+</select>
+
+<h1>Air Pollution Monitoring Readings</h1>
+<div class="dashboard">
+    <div class="chart-container">
+        <canvas id="tempChart"></canvas>
+    </div>
+
+    <div class="chart-container">
+        <canvas id="humidityChart"></canvas>
+    </div>
+
+    <div class="chart-container">
+        <canvas id="co2Chart"></canvas>
+    </div>
+
+    <div class="chart-container">
+        <canvas id="tvocChart"></canvas>
+    </div>
+
+    <div class="chart-container">
+        <canvas id="pressureChart"></canvas>
+    </div>
+
+    <div class="chart-container">
+        <canvas id="PM1_0Chart"></canvas>
+    </div>
+
+    <div class="chart-container">
+        <canvas id="PM2_5Chart"></canvas>
+    </div>
+
+    <div class="chart-container">
+        <canvas id="PM10Chart"></canvas>
+    </div>
+    
+
+</div>
+
+<script>
+let charts = {};
+const connectDeviceForm = document.getElementById("connectDeviceForm");
+const deviceMessage = document.getElementById("deviceMessage");
+const deviceSelect = document.getElementById("deviceSelect");
+
+const SAFE_RANGES = {
+    temp: { lower: 45, upper: 85 },
+    humidity: { lower: 10, upper: 60 },
+    pressure: { lower: 980, upper: 1030 },
+    co2: { lower: 400, upper: 1000 },
+    tvoc: { lower: 0, upper: 0.5 },
+    pm1: { lower: 10, upper: 25 },
+    pm25: { lower: 12, upper: 35 },
+    pm10: { lower: 54, upper: 155 }
+};
+
+connectDeviceForm.addEventListener("submit", async function(event) {
+    event.preventDefault();
+
+    const formData = new FormData(connectDeviceForm);
+    const response = await fetch("/add_device", {
+        method: "POST",
+        headers: {
+            "Accept": "application/json"
+        },
+        body: formData
+    });
+    const result = await response.json();
+
+    deviceMessage.textContent = result.message;
+    deviceMessage.style.color = result.success ? "green" : "red";
+
+    if (result.success) {
+        if (result.device) {
+            addDeviceOption(result.device);
+            deviceSelect.value = result.device.device_id;
+        }
+
+        connectDeviceForm.reset();
+        await fetchData();
+    }
+});
+
+deviceSelect.addEventListener("change", fetchData);
+
+function addDeviceOption(device) {
+    const existingOption = deviceSelect.querySelector(
+        `option[value="${device.device_id}"]`
+    );
+
+    if (existingOption) {
+        return;
+    }
+
+    const option = document.createElement("option");
+    option.value = device.device_id;
+    option.textContent = device.device_code;
+    deviceSelect.appendChild(option);
+}
+
+function makeThresholdDataset(label, value, color) {
+    return {
+        label: `${label}: ${value}`,
+        thresholdValue: value,
+        data: [],
+        borderColor: color,
+        borderDash: [6, 6],
+        borderWidth: 2,
+        pointRadius: 0,
+        fill: false,
+        tension: 0
+    };
+}
+
+// Create chart once
+function initChart(elementId, label, safeRange) {
+    const ctx = document.getElementById(elementId);
+    if (!ctx) {
+        console.error(`Chart element not found: ${elementId}`);
+        return;
+    }
+
+    const datasets = [{
+        label: label,
+        data: [],
+        borderColor: "#2563eb",
+        borderWidth: 2,
+        pointRadius: 2,
+        tension: 0.3
+    }];
+
+    if (safeRange) {
+        datasets.push(
+            makeThresholdDataset("Safe lower", safeRange.lower, "#16a34a"),
+            makeThresholdDataset("Safe upper", safeRange.upper, "#dc2626")
+        );
+    }
+
+    charts[elementId] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: datasets
+        },
+        options: {
+            interaction: {
+                mode: "index",
+                intersect: false
+            },
+            scales: {
+                y: {
+                    grace: "10%"
+                }
+            }
+        }
+    });
+}
+
+
+// Update chart data
+function updateChart(chart, labels, values) {
+    if (!chart) {
+        return;
+    }
+
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = values;
+
+    for (let i = 1; i < chart.data.datasets.length; i++) {
+        const thresholdValue = chart.data.datasets[i].thresholdValue;
+        chart.data.datasets[i].data = labels.map(() => thresholdValue);
+    }
+
+    chart.update();
+}
+
+// Fetch latest data
+async function fetchData() {
+    const deviceId = deviceSelect.value;
+    const url = deviceId ? `/api/data?device_id=${deviceId}` : "/api/data";
+    const response = await fetch(url);
+    const data = await response.json();
+
+    updateSensorChart(charts.tempChart, data.temp);
+    updateSensorChart(charts.humidityChart, data.humidity);
+    updateSensorChart(charts.pressureChart, data.pressure);
+    updateSensorChart(charts.co2Chart, data.co2);
+    updateSensorChart(charts.tvocChart, data.tvoc);
+    updateSensorChart(charts.PM1_0Chart, data["pm1.0"]);
+    updateSensorChart(charts.PM2_5Chart, data["pm2.5"]);
+    updateSensorChart(charts.PM10Chart, data["pm10.0"]);
+
+}
+
+function updateSensorChart(chart, sensorData) {
+    const labels = sensorData ? sensorData.labels : [];
+    const values = sensorData ? sensorData.values : [];
+
+    updateChart(chart, labels, values);
+}
+
+// Initialize charts
+initChart("tempChart", "Temperature (F)", SAFE_RANGES.temp);
+initChart("humidityChart", "Humidity (%)", SAFE_RANGES.humidity);
+initChart("pressureChart", "Pressure Level", SAFE_RANGES.pressure);
+initChart("co2Chart", "CO2", SAFE_RANGES.co2);
+initChart("tvocChart", "TVOC", SAFE_RANGES.tvoc);
+initChart("PM1_0Chart", "PM1.0 (ug/m3)", SAFE_RANGES.pm1);
+initChart("PM2_5Chart", "PM2.5 (ug/m3)", SAFE_RANGES.pm25);
+initChart("PM10Chart", "PM10.0 (ug/m3)", SAFE_RANGES.pm10);
+
+// Initial load
+fetchData();
+
+// Poll every 5 seconds
+setInterval(fetchData, 5000);
+</script>
+
+
+</body>
+{% endblock %}
+</html>

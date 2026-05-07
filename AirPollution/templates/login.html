@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+</head>
+<body>
+    {% extends "base.html" %}
+    {% block title%} login {% endblock %}
+    {% block content %}
+    <form action ="/login" method = "POST">
+
+        {% if error %}
+        <h3 style="color:red;">{{ error }}</h3>
+        {% endif %}
+        
+        <label for = "username"> Username: </label>
+        <input type="text" name="username" value="{{ request.form.username }}" required><br>
+
+        <label for = "password">Password:  </label>
+        <input type = "password" id ="password" name = "password" required><br>
+
+        <input type = "submit"  value = "Login foo">
+        
+
+
+    </form>
+    {% endblock %}
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CREATE</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    {% extends "base.html" %}
+    {% block title%} create {% endblock %}
+    {% block content %}
+
+    {% if userExists %}
+    <h1> Username is already taken &#128514; </h1>
+    {% endif %}
+         <form action ="/create" method = "POST">
+             <label for = "username"> Username: </label>
+             <input type = "text" id ="username" name = "username" required><br>
+
+             <label for = "password">Password:  </label>
+             <input type = "password" id ="password" name = "password" required><br>
+
+             <input type = "submit" value = "Create New User">
+
+         </form>
+    {% endblock %}
+
+</body>
+</html>

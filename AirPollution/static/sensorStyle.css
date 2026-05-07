@@ -1,0 +1,141 @@
+/* ---------------------------
+   Global Page Styling
+--------------------------- */
+body {
+    margin: 0;
+    padding: 40px;
+    font-family: Arial, Helvetica, sans-serif;
+    background: linear-gradient(135deg, #f8e9e9, #323232);
+    color: #000000;
+}
+
+h1 {
+    text-align: center;
+    font-size: 2.8rem;
+    margin-bottom: 50px;
+    letter-spacing: 1.5px;
+}
+
+/*---------------------------
+Form submission styling
+--------------------------*/
+
+/* Form container */
+.device-form {
+    background: #ffffff;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    width: 100%;
+    max-width: 400px;
+    box-sizing: border-box;
+}
+
+/* Title */
+.form-title {
+    margin-bottom: 1.5rem;
+    text-align: center;
+    font-weight: 600;
+    color: #333;
+}
+
+/* Form group spacing */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.25rem;
+}
+
+/* Label styling */
+.form-group label {
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #444;
+}
+
+/* Input styling */
+.form-group input {
+    padding: 0.75rem;
+    border: 1px solid #d0d5dd;
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Input focus effect */
+.form-group input:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* Button styling */
+.btn-primary {
+    width: 100%;
+    padding: 0.8rem;
+    background-color: #2563eb;
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 500;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.05s ease;
+}
+
+/* Button hover */
+.btn-primary:hover {
+    background-color: #1d4ed8;
+}
+
+/* Button click animation */
+.btn-primary:active {
+    transform: scale(0.98);
+}
+
+
+/* ---------------------------
+   Chart Layout
+--------------------------- */
+.dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 40px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.chart-container {
+    background-color: #ffffff;
+    padding: 25px 30px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+.chart-container canvas {
+    width: 100% !important;
+    height: auto !important;
+}
+
+/* ---------------------------
+   Chart Titles (Chart.js legend)
+--------------------------- */
+.chart-container h2 {
+    text-align: center;
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+}
+
+/* ---------------------------
+   Responsive Tweaks
+--------------------------- */
+@media (max-width: 600px) {
+    body {
+        padding: 20px;
+    }
+
+    h1 {
+        font-size: 2.2rem;
+        margin-bottom: 30px;
+    }
+}
